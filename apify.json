@@ -1,0 +1,11 @@
+{
+  "name": "surugaya-japan-hobby-prices",
+  "version": "0.1.0",
+  "description": "Scrape used & new prices from Suruga-ya (駿河屋), Japan's largest second-hand collectibles store. Extract 24 data fields including name, used/new/list price, brand, release date, stock status, images, condition badges. Unique fields: original list price (定価), brand/publisher, and release date — not available in competing scrapers. Supports Japanese keyword search, batch multi-keyword input, stock filtering, and Cloudflare bypass with Playwright fallback.",
+  "author": "Atushi",
+  "license": "MIT",
+  "dockerfile": "./Dockerfile",
+  "input": "./INPUT_SCHEMA.json",
+  "readme": "./README.md",
+  "output": "dataset"
+}

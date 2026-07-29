@@ -1,0 +1,46 @@
+{
+  "title": "Suruga-ya Scraper",
+  "description": "Scrape used hobby-goods prices from Suruga-ya (駿河屋), Japan's big second-hand store for figures, anime merchandise, games, and collectibles. Get used and new prices, stock status, product names, and images as clean JSON.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "searchKeyword": {
+      "title": "Search Keyword",
+      "type": "string",
+      "description": "Keyword to search for (Japanese characters supported)",
+      "editor": "textfield",
+      "prefill": "ポケモン"
+    },
+    "maxPages": {
+      "title": "Max Pages",
+      "type": "integer",
+      "description": "Maximum number of search result pages to scrape (20 items per page)",
+      "editor": "number",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 10
+    },
+    "inStockOnly": {
+      "title": "In Stock Only",
+      "type": "boolean",
+      "description": "Only return items that are currently in stock",
+      "editor": "checkbox",
+      "default": false
+    },
+    "proxy": {
+      "title": "Proxy Configuration",
+      "type": "object",
+      "description": "Apify proxy configuration (uses Japan residential proxies by default)",
+      "editor": "proxy",
+      "default": {
+        "useApifyProxy": true,
+        "apifyProxyCountry": "JP"
+      },
+      "prefill": {
+        "useApifyProxy": true,
+        "apifyProxyCountry": "JP"
+      }
+    }
+  },
+  "required": ["searchKeyword"]
+}

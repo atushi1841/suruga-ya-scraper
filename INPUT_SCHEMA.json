@@ -1,0 +1,54 @@
+{
+  "title": "Suruga-ya Scraper — 駿河屋 中古ホビー価格",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "searchKeyword": {
+      "title": "Search Keywords",
+      "type": "string",
+      "description": "Keyword(s) to search. Separate multiple keywords with commas for batch search (e.g. 'フィギュア,ガンダム,ポケモン')",
+      "editor": "textfield",
+      "prefill": "ポケモン"
+    },
+    "maxPages": {
+      "title": "Max Pages Per Keyword",
+      "type": "integer",
+      "description": "Max pages to scrape per keyword (~20 items per page)",
+      "editor": "number",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 20
+    },
+    "inStockOnly": {
+      "title": "In Stock Only",
+      "type": "boolean",
+      "description": "Only return items currently in stock (sold-out items excluded)",
+      "default": false,
+      "editor": "checkbox"
+    },
+    "maxResults": {
+      "title": "Max Results Per Keyword",
+      "type": "integer",
+      "default": 50,
+      "maximum": 200,
+      "minimum": 1,
+      "editor": "number",
+      "description": "Maximum items to return per keyword (1-200)"
+    },
+    "proxyConfiguration": {
+      "title": "Proxy Configuration",
+      "type": "object",
+      "description": "Apify proxy — use Japan residential proxies for reliable access to Suruga-ya (Japan IP required)",
+      "editor": "proxy",
+      "default": {
+        "useApifyProxy": true,
+        "apifyProxyCountry": "JP"
+      },
+      "prefill": {
+        "useApifyProxy": true,
+        "apifyProxyCountry": "JP"
+      }
+    }
+  },
+  "required": ["searchKeyword"]
+}

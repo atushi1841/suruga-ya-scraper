@@ -1,0 +1,29 @@
+{
+  "actorSpecification": 1,
+  "name": "surugaya-japan-hobby-prices",
+  "title": "Suruga-ya Scraper — 駿河屋 中古フィギュア・ホビー価格",
+  "version": "0.1",
+  "buildTag": "latest",
+  "environmentVariables": {},
+  "outputSchema": {
+    "actorOutputSchemaVersion": 1,
+    "title": "Suruga-ya Product Listing",
+    "description": "Full product data scraped from Suruga-ya — including unique fields like original list price, brand/publisher, and release date not available in competing scrapers.",
+    "properties": {
+      "name": {"title": "Product Name", "type": "string", "description": "Product name (Japanese)", "template": "{{name}}"},
+      "url": {"title": "URL", "type": "string", "description": "Product detail page URL", "template": "{{url}}"},
+      "used_price_jpy": {"title": "Used Price (JPY)", "type": "string", "description": "Second-hand price in Japanese yen", "template": "{{used_price_jpy}}"},
+      "new_price_jpy": {"title": "New Price (JPY)", "type": "string", "description": "New/sealed item price in yen", "template": "{{new_price_jpy}}"},
+      "list_price_jpy": {"title": "List Price (JPY)", "type": "string", "description": "Original retail price (定価) — unique field vs. competitors", "template": "{{list_price_jpy}}"},
+      "marketplace_price_jpy": {"title": "Marketplace Price (JPY)", "type": "string", "description": "Marketplace reseller price (マケプレ)", "template": "{{marketplace_price_jpy}}"},
+      "brand": {"title": "Brand / Publisher", "type": "string", "description": "Brand or publisher name — unique field vs. competitors", "template": "{{brand}}"},
+      "release_date": {"title": "Release Date", "type": "string", "description": "Official release date (YYYY/MM/DD) — unique field vs. competitors", "template": "{{release_date}}"},
+      "category": {"title": "Category", "type": "string", "description": "Product category path", "template": "{{category}}"},
+      "condition_badge": {"title": "Condition Badge", "type": "string", "description": "Store condition label (新入荷, 限定, etc.)", "template": "{{condition_badge}}"},
+      "in_stock": {"title": "In Stock", "type": "string", "description": "Item stock status", "template": "{{in_stock}}"},
+      "image_url": {"title": "Image URL", "type": "string", "description": "Product thumbnail image", "template": "{{image_url}}"},
+      "scraped_at": {"title": "Scraped At", "type": "string", "description": "ISO 8601 scrape timestamp", "template": "{{scraped_at}}"}
+    },
+    "required": ["name", "url", "used_price_jpy"]
+  }
+}
