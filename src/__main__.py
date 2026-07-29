@@ -51,16 +51,12 @@ def main() -> None:
             # Proxy configuration
             proxy_url = None
             try:
-                proxy_input = actor_input.get("proxyConfiguration")
-                if proxy_input and proxy_input.get("useApifyProxy", False):
-                    import os
-                    pwd = os.environ.get("APIFY_PROXY_PASSWORD")
-                    if pwd:
-                        host = "proxy.apify.com"
-                        proxy_url = f"http://groups-auto:{pwd}@{host}:8000"
-                        Actor.log.info(f"Using Apify proxy: {host}")
-                    else:
-                        Actor.log.warning("APIFY_PROXY_PASSWORD not set")
+                proxy_config = await Actor.create_proxy_configuration(
+                    actor_proxy_input=actor_input.get("proxyConfiguration")
+                )
+                if proxy_config:
+                    proxy_url = proxy_config.get_url()
+                    Actor.log.info(f"Using Apify proxy")
             except Exception as e:
                 Actor.log.warning(f"Proxy config failed: {e}")
 
