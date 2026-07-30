@@ -20,7 +20,7 @@ from urllib.parse import quote
 import httpx
 
 DATA_DIR = Path(__file__).parent.parent / "data"
-BASE_URL = "https://www.suruga-ya.jp"
+BASE_URL = "http://www.suruga-ya.jp"
 SEARCH_URL = f"{BASE_URL}/search"
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0"
@@ -336,10 +336,17 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
 
     # Parse Apify proxy URL for Playwright
     pw_proxy = None
-    # Try Playwright without proxy first — Playwright's browser fingerprint
-    # is much harder to distinguish from real users, so Suruga-ya may not block it.
-    # Then fall back to Apify proxy if direct also fails.
-    print(f"  [PW] Direct connection (no proxy)")
+    # Use Apify Japan proxy (HTTP target avoids HTTPS CONNECT tunnel issue)
+    apify_proxy_password = os.environ.get("APIFY_PROXY_PASSWORD")
+    if apify_proxy_password:
+        pw_proxy = {
+            "server": "http://proxy.apify.com:8000",
+            "username": "groups-country-JP",
+            "password": apify_proxy_password,
+        }
+        print(f"  [PW] Apify Japan proxy (HTTP)")
+    else:
+        print(f"  [PW] Direct connection (no proxy)")
 
     async with async_playwright() as pw:
         browser_kwargs = {"headless": True}
