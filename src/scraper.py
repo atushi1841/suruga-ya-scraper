@@ -79,6 +79,8 @@ class SurugaItem:
 def _fetch_page(keyword: str, page: int, proxy_url: str | None = None) -> tuple[str | None, bool]:
     """
     1ページ取得。
+    Strategy: direct connection first (Apify DC IP), no proxy for httpx.
+    If blocked, Playwright fallback will handle proxy.
     Returns: (html, used_playwright) — html=None if blocked permanently
     used_playwright=True means this page needed Playwright
     """
@@ -86,7 +88,10 @@ def _fetch_page(keyword: str, page: int, proxy_url: str | None = None) -> tuple[
     
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            with httpx.Client(headers=HEADERS, follow_redirects=True, timeout=30, proxy=proxy_url) as client:
+            # Apify proxy is passed to Playwright only; httpx goes direct.
+            # The Apify proxy auth (groups-country-JP) needs full browser context
+            # to handle properly — httpx gets 407 errors with it.
+            with httpx.Client(headers=HEADERS, follow_redirects=True, timeout=30) as client:
                 resp = client.get(url)
                 
                 if resp.status_code == 200 and len(resp.content) > 1000:
@@ -317,6 +322,21 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
 
     all_items = []
 
+    # Parse Apify proxy URL for Playwright
+    pw_proxy = None
+    if proxy_url:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(proxy_url)
+            pw_proxy = {
+                "server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}",
+                "username": parsed.username or "",
+                "password": parsed.password or "",
+            }
+            print(f"  [PW Proxy] server={pw_proxy['server']}")
+        except Exception as e:
+            print(f"  [PW Proxy] parse error: {e}")
+
     async with async_playwright() as pw:
         browser_kwargs = {"headless": True}
         browser = await pw.chromium.launch(
@@ -328,12 +348,15 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
                 "--disable-component-update",
             ],
         )
-        context = await browser.new_context(
-            user_agent=UA,
-            locale="ja-JP",
-            timezone_id="Asia/Tokyo",
-            viewport={"width": 1920, "height": 1080},
-        )
+        context_kwargs = {
+            "user_agent": UA,
+            "locale": "ja-JP",
+            "timezone_id": "Asia/Tokyo",
+            "viewport": {"width": 1920, "height": 1080},
+        }
+        if pw_proxy:
+            context_kwargs["proxy"] = pw_proxy
+        context = await browser.new_context(**context_kwargs)
         # Stealth: override webdriver detection
         await context.add_init_script("""
             Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
