@@ -306,15 +306,15 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
                     break
 
                 print(f"  [SC OK] {len(html)} bytes")
-            items = _parse_html(html)
-            print(f"  [SC] {len(items)} items found")
-            all_items.extend(items)
+                items = _parse_html(html)
+                print(f"  [SC] {len(items)} items found")
+                all_items.extend(items)
 
-            # Check for next page (simple heuristic)
-            if 'rel="next"' not in html:
-                break
+                # Check for next page (simple heuristic)
+                if 'rel="next"' not in html:
+                    break
 
-            await asyncio.sleep(2)
+                await asyncio.sleep(2)
 
             if all_items:
                 return all_items
