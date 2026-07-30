@@ -262,39 +262,50 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
     import asyncio
     print("  [PW] Switching to Playwright (Async)...")
 
-    # Try Scrapling StealthyFetcher first (best Cloudflare bypass)
+    # Skip Scrapling StealthyFetcher in async (Apify) mode — uses Playwright Sync API.
     try:
-        from scrapling.fetchers import StealthyFetcher
-        print("  [SC] Trying StealthyFetcher (Camoufox)...")
-        all_items: list[SurugaItem] = []
+        # Check if we're in an async loop (Apify mode)
+        asyncio.get_running_loop()
+        in_async = True
+    except RuntimeError:
+        in_async = False
 
-        for p in range(1, max_pages + 1):
-            url = f"{SEARCH_URL}?search_word={quote(keyword)}&page={p}"
-            print(f"  [SC PAGE {p}]")
+    all_items: list[SurugaItem] = []
 
-            page = StealthyFetcher.fetch(
-                url,
-                headless=True,
-                network_idle=False,
-                timeout=120,
-            )
+    if not in_async:
+        # Sync mode: try Scrapling StealthyFetcher first (best Cloudflare bypass)
+        try:
+            from scrapling.fetchers import StealthyFetcher
+            print("  [SC] Trying StealthyFetcher (Camoufox)...")
+            all_items: list[SurugaItem] = []
 
-            if page is None:
-                print("  [SC] Failed to fetch page")
-                break
+            for p in range(1, max_pages + 1):
+                url = f"{SEARCH_URL}?search_word={quote(keyword)}&page={p}"
+                print(f"  [SC PAGE {p}]")
 
-            # Get HTML content
-            html = page.content if hasattr(page, 'content') else str(page)
-            if not html or len(html) < 500:
-                print("  [SC] Empty or too small response")
-                break
+                page = StealthyFetcher.fetch(
+                    url,
+                    headless=True,
+                    network_idle=False,
+                    timeout=120,
+                )
 
-            # Check for Cloudflare
-            if "Just a moment" in html[:500] or "しばらくお待ち" in html[:500]:
-                print("  [SC] Still blocked by Cloudflare")
-                break
+                if page is None:
+                    print("  [SC] Failed to fetch page")
+                    break
 
-            print(f"  [SC OK] {len(html)} bytes")
+                # Get HTML content
+                html = page.content if hasattr(page, 'content') else str(page)
+                if not html or len(html) < 500:
+                    print("  [SC] Empty or too small response")
+                    break
+
+                # Check for Cloudflare
+                if "Just a moment" in html[:500] or "しばらくお待ち" in html[:500]:
+                    print("  [SC] Still blocked by Cloudflare")
+                    break
+
+                print(f"  [SC OK] {len(html)} bytes")
             items = _parse_html(html)
             print(f"  [SC] {len(items)} items found")
             all_items.extend(items)
@@ -305,13 +316,13 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
 
             await asyncio.sleep(2)
 
-        if all_items:
-            return all_items
+            if all_items:
+                return all_items
 
-    except ImportError:
-        print("  [SC] scrapling not installed, falling back to Playwright")
-    except Exception as e:
-        print(f"  [SC] Error: {e}, falling back to Playwright")
+        except ImportError:
+            print("  [SC] scrapling not installed, falling back to Playwright")
+        except Exception as e:
+            print(f"  [SC] Error: {e}, falling back to Playwright")
 
     # Fall back to regular Playwright Async
     print("  [PW] Fallback to regular Playwright (Async)...")
@@ -325,30 +336,10 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
 
     # Parse Apify proxy URL for Playwright
     pw_proxy = None
-    # For Apify platform: use environment variables directly for correct proxy format.
-    # The SDK's new_url() may return ACTOR proxy (auto:...) which doesn't work with
-    # Playwright's HTTPS tunnel. Group proxy (groups-country-JP:...) is reliable.
-    apify_proxy_password = os.environ.get("APIFY_PROXY_PASSWORD")
-    if apify_proxy_password:
-        pw_proxy = {
-            "server": "http://proxy.apify.com:8000",
-            "username": "groups-country-JP",
-            "password": apify_proxy_password,
-        }
-        print(f"  [PW Proxy] groups-country-JP (from APIFY_PROXY_PASSWORD)")
-    elif proxy_url:
-        # Fallback: parse URL from SDK (for local testing)
-        try:
-            from urllib.parse import urlparse
-            parsed = urlparse(str(proxy_url))
-            pw_proxy = {
-                "server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}",
-                "username": parsed.username or "",
-                "password": parsed.password or "",
-            }
-            print(f"  [PW Proxy SDK] server={pw_proxy['server']}")
-        except Exception as e:
-            print(f"  [PW Proxy] parse error: {e}")
+    # Try Playwright without proxy first — Playwright's browser fingerprint
+    # is much harder to distinguish from real users, so Suruga-ya may not block it.
+    # Then fall back to Apify proxy if direct also fails.
+    print(f"  [PW] Direct connection (no proxy)")
 
     async with async_playwright() as pw:
         browser_kwargs = {"headless": True}
