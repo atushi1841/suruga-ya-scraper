@@ -89,9 +89,9 @@ def _fetch_page(keyword: str, page: int, proxy_url: str | None = None) -> tuple[
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             # Apify proxy is passed to Playwright only; httpx goes direct.
-            # The Apify proxy auth (groups-country-JP) needs full browser context
-            # to handle properly — httpx gets 407 errors with it.
-            with httpx.Client(headers=HEADERS, follow_redirects=True, timeout=30) as client:
+            # The Apify runtime sets HTTP_PROXY environment variable which httpx
+            # picks up by default — disable that with trust_env=False.
+            with httpx.Client(headers=HEADERS, follow_redirects=True, timeout=30, trust_env=False) as client:
                 resp = client.get(url)
                 
                 if resp.status_code == 200 and len(resp.content) > 1000:
@@ -418,13 +418,27 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
 
 
 def _fetch_with_playwright(keyword: str, max_pages: int, proxy_url: str | None = None) -> list[SurugaItem]:
-    """httpxがブロックされた場合のPlaywrightフォールバック (sync wrapper)"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    """httpxがブロックされた場合のPlaywrightフォールバック (sync wrapper).
+    
+    Uses existing event loop if running in async context (Apify mode),
+    otherwise creates a new loop."""
     try:
-        return loop.run_until_complete(_fetch_with_playwright_async(keyword, max_pages, proxy_url))
-    finally:
-        loop.close()
+        loop = asyncio.get_running_loop()
+        # Inside an async context (Apify mode) — use run_coroutine_threadsafe
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(
+                lambda: asyncio.run(_fetch_with_playwright_async(keyword, max_pages, proxy_url))
+            )
+            return future.result()
+    except RuntimeError:
+        # No running loop (standalone mode) — create a new loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(_fetch_with_playwright_async(keyword, max_pages, proxy_url))
+        finally:
+            loop.close()
 
 
 # ── メイン ──
