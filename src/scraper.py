@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import time
 import urllib.parse
@@ -324,20 +325,28 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
 
     # Parse Apify proxy URL for Playwright
     pw_proxy = None
-    if proxy_url:
+    # For Apify platform: use environment variables directly for correct proxy format.
+    # The SDK's new_url() may return ACTOR proxy (auto:...) which doesn't work with
+    # Playwright's HTTPS tunnel. Group proxy (groups-country-JP:...) is reliable.
+    apify_proxy_password = os.environ.get("APIFY_PROXY_PASSWORD")
+    if apify_proxy_password:
+        pw_proxy = {
+            "server": "http://proxy.apify.com:8000",
+            "username": "groups-country-JP",
+            "password": apify_proxy_password,
+        }
+        print(f"  [PW Proxy] groups-country-JP (from APIFY_PROXY_PASSWORD)")
+    elif proxy_url:
+        # Fallback: parse URL from SDK (for local testing)
         try:
             from urllib.parse import urlparse
             parsed = urlparse(str(proxy_url))
-            username = parsed.username or ""
-            password = parsed.password or ""
-            # Apify internal proxy IPs may not work with Playwright.
-            # Use the standard proxy.apify.com hostname instead.
             pw_proxy = {
-                "server": "http://proxy.apify.com:8000",
-                "username": username,
-                "password": password,
+                "server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}",
+                "username": parsed.username or "",
+                "password": parsed.password or "",
             }
-            print(f"  [PW Proxy] username={username[:30]}... server={pw_proxy['server']}")
+            print(f"  [PW Proxy SDK] server={pw_proxy['server']}")
         except Exception as e:
             print(f"  [PW Proxy] parse error: {e}")
 
