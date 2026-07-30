@@ -327,13 +327,17 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
     if proxy_url:
         try:
             from urllib.parse import urlparse
-            parsed = urlparse(proxy_url)
+            parsed = urlparse(str(proxy_url))
+            username = parsed.username or ""
+            password = parsed.password or ""
+            # Apify internal proxy IPs may not work with Playwright.
+            # Use the standard proxy.apify.com hostname instead.
             pw_proxy = {
-                "server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}",
-                "username": parsed.username or "",
-                "password": parsed.password or "",
+                "server": "http://proxy.apify.com:8000",
+                "username": username,
+                "password": password,
             }
-            print(f"  [PW Proxy] server={pw_proxy['server']}")
+            print(f"  [PW Proxy] username={username[:30]}... server={pw_proxy['server']}")
         except Exception as e:
             print(f"  [PW Proxy] parse error: {e}")
 
