@@ -55,8 +55,8 @@ def main() -> None:
                     actor_proxy_input=actor_input.get("proxyConfiguration")
                 )
                 if proxy_config:
-                    proxy_url = proxy_config.get_url()
-                    Actor.log.info(f"Using Apify proxy")
+                    proxy_url = await proxy_config.new_url()
+                    Actor.log.info(f"Using Apify proxy: {str(proxy_url)[:50]}")
             except Exception as e:
                 Actor.log.warning(f"Proxy config failed: {e}")
 
