@@ -336,17 +336,20 @@ async def _fetch_with_playwright_async(keyword: str, max_pages: int, proxy_url: 
 
     # Parse Apify proxy URL for Playwright
     pw_proxy = None
-    # Use Apify Japan proxy (HTTP target avoids HTTPS CONNECT tunnel issue)
-    apify_proxy_password = os.environ.get("APIFY_PROXY_PASSWORD")
-    if apify_proxy_password:
-        pw_proxy = {
-            "server": "http://proxy.apify.com:8000",
-            "username": "groups-country-JP",
-            "password": apify_proxy_password,
-        }
-        print(f"  [PW] Apify Japan proxy (HTTP)")
-    else:
-        print(f"  [PW] Direct connection (no proxy)")
+    # Use Apify ACTOR proxy (included with all plans) for Playwright.
+    # HTTP target avoids HTTPS CONNECT tunnel issues with the proxy.
+    if proxy_url:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(str(proxy_url))
+            pw_proxy = {
+                "server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}",
+                "username": parsed.username or "",
+                "password": parsed.password or "",
+            }
+            print(f"  [PW] ACTOR proxy ({parsed.username[:20]}...)")
+        except Exception as e:
+            print(f"  [PW] proxy error: {e}")
 
     async with async_playwright() as pw:
         browser_kwargs = {"headless": True}
